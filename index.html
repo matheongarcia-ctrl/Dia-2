@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Buscaminas</title>
+<style>
+body{background:#0f172a;color:white;font-family:Arial;display:flex;justify-content:center}
+.container{padding:20px;text-align:center}
+.grid{display:grid;grid-template-columns:repeat(30,20px);gap:2px;justify-content:center;margin-top:20px}
+.cell{width:20px;height:20px;background:#1e293b;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center}
+.revealed{background:#334155}
+.mine{background:red}
+.flag{background:#1e293b}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div class="container">
+<h2>Buscaminas</h2>
+<p>Si ganás desbloqueás la siguiente parte del mensaje</p>
+<div id="grid" class="grid"></div>
+<div id="win" class="hidden">
+<h3>Dia 2</h3>
+<p>porque sos muy especial para mí</p>
+</div>
+</div>
+
+<script>
+const width=30;
+const height=24;
+const minesCount=250;
+let grid=[];
+let gameOver=false;
+
+function createGrid(){
+ for(let i=0;i<width*height;i++){
+  grid.push({mine:false,revealed:false,adj:0,flag:false});
+ }
+
+ let minesPlaced=0;
+ while(minesPlaced<minesCount){
+  let i=Math.floor(Math.random()*grid.length);
+  if(!grid[i].mine){
+   grid[i].mine=true;
+   minesPlaced++;
+  }
+ }
+
+ for(let y=0;y<height;y++){
+  for(let x=0;x<width;x++){
+   let i=y*width+x;
+   if(grid[i].mine) continue;
+   let count=0;
+   for(let dy=-1;dy<=1;dy++){
+    for(let dx=-1;dx<=1;dx++){
+     let nx=x+dx, ny=y+dy;
+     if(nx>=0 && nx<width && ny>=0 && ny<height){
+      if(grid[ny*width+nx].mine) count++;
+     }
+    }
+   }
+   grid[i].adj=count;
+  }
+ }
+}
+
+function draw(){
+ const gridEl=document.getElementById('grid');
+ gridEl.innerHTML='';
+ grid.forEach((cell,i)=>{
+  const div=document.createElement('div');
+  div.className='cell';
+
+  div.oncontextmenu=(e)=>{
+   e.preventDefault();
+   toggleFlag(i);
+  };
+
+  div.onclick=()=>reveal(i);
+
+  if(cell.flag){
+   div.textContent='🚩';
+  }
+
+  if(cell.revealed){
+   div.classList.add('revealed');
+   if(cell.mine){div.classList.add('mine');div.textContent='💣'}
+   else if(cell.adj>0){div.textContent=cell.adj}
+   else{div.textContent=''}
+  }
+
+  gridEl.appendChild(div);
+ });
+}
+
+function toggleFlag(i){
+ if(gameOver || grid[i].revealed) return;
+ grid[i].flag=!grid[i].flag;
+ draw();
+}
+
+function reveal(i){
+ if(gameOver || grid[i].revealed || grid[i].flag) return;
+ grid[i].revealed=true;
+
+ if(grid[i].mine){
+  gameOver=true;
+  alert('Perdiste');
+  location.reload();
+  return;
+ }
+
+ if(grid[i].adj===0){
+  let x=i%width;
+  let y=Math.floor(i/width);
+  for(let dy=-1;dy<=1;dy++){
+   for(let dx=-1;dx<=1;dx++){
+    let nx=x+dx, ny=y+dy;
+    if(nx>=0 && nx<width && ny>=0 && ny<height){
+     reveal(ny*width+nx);
+    }
+   }
+  }
+ }
+
+ checkWin();
+ draw();
+}
+
+function checkWin(){
+ let safeCells=grid.filter(c=>!c.mine);
+ if(safeCells.every(c=>c.revealed)){
+  document.getElementById('win').classList.remove('hidden');
+ }
+}
+
+createGrid();
+draw();
+</script>
+</body>
+</html>
